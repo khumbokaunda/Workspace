@@ -1,5 +1,11 @@
 // Shared helpers used across multiple pages.
 
+function escape_html(value) {
+    const div = document.createElement('div');
+    div.textContent = value == null ? '' : String(value);
+    return div.innerHTML;
+}
+
 function view_password(input_id, icon_id) {
     const input = document.getElementById(input_id);
     const icon = document.getElementById(icon_id);
