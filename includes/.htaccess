@@ -1,0 +1,3 @@
+# Shared includes are only ever pulled in via require/include from PHP,
+# never served over the web.
+Require all denied

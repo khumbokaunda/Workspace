@@ -1,5 +1,14 @@
 <?php
-require_once __DIR__ . '/config.php';
+// Config location: a config.php one directory ABOVE the webroot is preferred
+// so credentials sit outside anything the web server can serve. When that is
+// not possible on the host, the copy inside the webroot is used and the root
+// .htaccess denies direct access to it as the fallback. Whichever file is
+// found first wins.
+if (file_exists(dirname(__DIR__) . '/config.php')) {
+    require_once dirname(__DIR__) . '/config.php';
+} else {
+    require_once __DIR__ . '/config.php';
+}
 
 $conn = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
 

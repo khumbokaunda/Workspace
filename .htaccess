@@ -1,0 +1,15 @@
+# WorkDesk root access rules. Directory listing is disabled everywhere and
+# sensitive file types are never served directly. The database/ and includes/
+# folders carry their own Require all denied for defense in depth.
+
+Options -Indexes
+
+# Block sensitive file types from direct access (schema, docs, composer files)
+<FilesMatch "\.(sql|md|json|lock)$">
+    Require all denied
+</FilesMatch>
+
+# Block config outright, both the live file and the committed example
+<FilesMatch "^config(\.example)?\.php$">
+    Require all denied
+</FilesMatch>

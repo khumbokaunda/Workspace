@@ -1,5 +1,13 @@
 // Shared helpers used across multiple pages.
 
+// jQuery sends X-Requested-With by default for same-origin requests, but the
+// server-side request_guard depends on it, so it is pinned here explicitly.
+$.ajaxSetup({
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+});
+
 function escape_html(value) {
     const div = document.createElement('div');
     div.textContent = value == null ? '' : String(value);
