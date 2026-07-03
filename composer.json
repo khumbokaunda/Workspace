@@ -1,0 +1,9 @@
+{
+    "name": "workdesk/wms",
+    "description": "WorkDesk - Workplace Management System",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.9"
+    }
+}
