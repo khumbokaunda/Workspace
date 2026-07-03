@@ -23,3 +23,13 @@ if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') !== 'XMLHttpRequest') {
     echo json_encode(array('success' => false, 'error' => 'Forbidden.'));
     exit;
 }
+
+// CSRF synchronizer token check. Every AJAX call carries the token in the
+// X-CSRF-Token header via the ajaxSetup block in src/script.js.
+require_once __DIR__ . '/csrf.php';
+
+if (!csrf_verify($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) {
+    http_response_code(403);
+    echo json_encode(array('success' => false, 'error' => 'Your session has expired. Please refresh the page and try again.'));
+    exit;
+}

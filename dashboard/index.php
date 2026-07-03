@@ -7,6 +7,7 @@ if (!isset($_SESSION['logged_in'])) {
     exit;
 }
 include "../db_connection.php";
+require_once "../includes/csrf.php";
 require_once "../includes/send_notification.php";
 
 $can_manage = can_manage_org($_SESSION['role']);
@@ -71,6 +72,7 @@ $latest_notifications_result = $conn->query($notifications_sql);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(csrf_token()); ?>">
     <title>WorkDesk | Dashboard</title>
     <link rel="icon" href="../images/favicon.svg" type="image/svg+xml">
 

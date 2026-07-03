@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../db_connection.php';
+require_once '../includes/csrf.php';
 
 // This is the login itself, so it deliberately does not include
 // request_guard.php or auth_check.php. Its protection is the brute-force
@@ -109,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $clear_fails_stmt->execute();
 
         session_regenerate_id(true);
+        csrf_regenerate();
 
         $_SESSION['logged_in'] = true;
         $_SESSION['user_id'] = $user['id'];

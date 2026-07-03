@@ -11,6 +11,7 @@ if ($_SESSION['role'] !== 'Admin') {
     exit;
 }
 include "../db_connection.php";
+require_once "../includes/csrf.php";
 
 $users_sql = "SELECT u.id, u.username, u.role, u.employee_id, u.created_at,
                      e.first_name, e.last_name
@@ -31,6 +32,7 @@ while ($row = $employees_result->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(csrf_token()); ?>">
     <title>WorkDesk | User Accounts</title>
     <link rel="icon" href="../images/favicon.svg" type="image/svg+xml">
 

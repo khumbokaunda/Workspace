@@ -7,6 +7,7 @@ if (!isset($_SESSION['logged_in'])) {
     exit;
 }
 include "../db_connection.php";
+require_once "../includes/csrf.php";
 
 $is_admin = $_SESSION['role'] === 'Admin';
 
@@ -42,6 +43,7 @@ if ($is_admin) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(csrf_token()); ?>">
     <title>WorkDesk | CVs</title>
     <link rel="icon" href="../images/favicon.svg" type="image/svg+xml">
 

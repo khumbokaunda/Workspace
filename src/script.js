@@ -2,9 +2,13 @@
 
 // jQuery sends X-Requested-With by default for same-origin requests, but the
 // server-side request_guard depends on it, so it is pinned here explicitly.
+// The CSRF token comes from the meta tag each page renders in its head; on
+// the login page there is no token yet, which is fine because the login
+// processor is guarded by the rate limiter instead.
 $.ajaxSetup({
     headers: {
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content') || ''
     }
 });
 

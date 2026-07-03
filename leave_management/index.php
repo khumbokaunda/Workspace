@@ -7,6 +7,7 @@ if (!isset($_SESSION['logged_in'])) {
     exit;
 }
 include "../db_connection.php";
+require_once "../includes/csrf.php";
 
 $role = $_SESSION['role'];
 $is_admin = $role === 'Admin';
@@ -58,6 +59,7 @@ function leave_status_badge($status) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(csrf_token()); ?>">
     <title>WorkDesk | Leave</title>
     <link rel="icon" href="../images/favicon.svg" type="image/svg+xml">
 
