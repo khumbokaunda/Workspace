@@ -9,19 +9,23 @@ if (!isset($_SESSION['logged_in'])) {
 include "../db_connection.php";
 
 $is_admin = $_SESSION['role'] === 'Admin';
+$is_line_manager = is_manager_tier($_SESSION['role']);
+$show_org_wide = $is_admin || $is_line_manager;
 
-if ($is_admin) {
+if ($show_org_wide) {
     $tasks_sql = "SELECT t.*, e.first_name, e.last_name
                   FROM tasks t
                   JOIN employees e ON e.id = t.assigned_to
                   ORDER BY t.due_date ASC, t.created_at DESC";
     $tasks_result = $conn->query($tasks_sql);
 
-    $employees_sql = "SELECT id, first_name, last_name FROM employees WHERE status = 'Active' ORDER BY first_name, last_name";
-    $employees_result = $conn->query($employees_sql);
-    $employees_list = array();
-    while ($row = $employees_result->fetch_assoc()) {
-        $employees_list[] = $row;
+    if ($is_line_manager) {
+        $employees_sql = "SELECT id, first_name, last_name FROM employees WHERE status = 'Active' ORDER BY first_name, last_name";
+        $employees_result = $conn->query($employees_sql);
+        $employees_list = array();
+        while ($row = $employees_result->fetch_assoc()) {
+            $employees_list[] = $row;
+        }
     }
 } else {
     $employee_id = $_SESSION['employee_id'];
@@ -81,10 +85,18 @@ function is_overdue($due_date, $status) {
                 <div>
                     <h1 class="comfortaa-bold fs-3 mb-1">Tasks</h1>
                     <p class="text-white-50 mb-0">
-                        <?php echo $is_admin ? "Assign work and track progress across the team." : "Your assigned tasks. Overdue tasks are marked in red."; ?>
+                        <?php
+                        if ($is_line_manager) {
+                            echo "Assign work and track progress across the team.";
+                        } elseif ($is_admin) {
+                            echo "Read-only oversight, task assignment belongs to Managing Director and Technical Manager.";
+                        } else {
+                            echo "Your assigned tasks. Overdue tasks are marked in red.";
+                        }
+                        ?>
                     </p>
                 </div>
-                <?php if ($is_admin) { ?>
+                <?php if ($is_line_manager) { ?>
                 <button class="btn btn-success comfortaa-bold" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                     <i class="fa-solid fa-plus me-2"></i>Assign Task
                 </button>
@@ -93,11 +105,11 @@ function is_overdue($due_date, $status) {
 
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <div class="table-responsive">
-                    <table id="tasks_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="tasks_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <th>Title</th>
-                                <?php if ($is_admin) { ?><th>Assigned To</th><?php } ?>
+                                <?php if ($show_org_wide) { ?><th>Assigned To</th><?php } ?>
                                 <th>Priority</th>
                                 <th>Status</th>
                                 <th>Due Date</th>
@@ -113,14 +125,14 @@ function is_overdue($due_date, $status) {
                                     <div class="text-white-50 small"><?php echo nl2br(htmlspecialchars($task['description'])); ?></div>
                                     <?php } ?>
                                 </td>
-                                <?php if ($is_admin) { ?>
+                                <?php if ($show_org_wide) { ?>
                                 <td><?php echo htmlspecialchars($task['first_name'] . ' ' . $task['last_name']); ?></td>
                                 <?php } ?>
                                 <td><span class="badge <?php echo priority_badge_class($task['priority']); ?>"><?php echo htmlspecialchars($task['priority']); ?></span></td>
                                 <td><span class="badge <?php echo status_badge_class($task['status']); ?>"><?php echo htmlspecialchars($task['status']); ?></span></td>
                                 <td><?php echo htmlspecialchars($task['due_date'] ?? '-'); ?></td>
                                 <td>
-                                    <?php if ($is_admin) { ?>
+                                    <?php if ($is_line_manager) { ?>
                                     <button class="btn btn-sm btn-333 bg-333 text-light edit_task_btn"
                                             data-id="<?php echo $task['id']; ?>"
                                             data-title="<?php echo htmlspecialchars($task['title']); ?>"
@@ -129,9 +141,12 @@ function is_overdue($due_date, $status) {
                                             data-priority="<?php echo htmlspecialchars($task['priority']); ?>"
                                             data-status="<?php echo htmlspecialchars($task['status']); ?>"
                                             data-due_date="<?php echo htmlspecialchars($task['due_date'] ?? ''); ?>"
-                                            data-bs-toggle="modal" data-bs-target="#editTaskModal">
+                                            data-bs-toggle="modal" data-bs-target="#editTaskModal"
+                                            title="Edit task" data-tooltip="1">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
+                                    <?php } elseif ($is_admin) { ?>
+                                        <span class="text-white-50">-</span>
                                     <?php } else { ?>
                                         <?php if ($task['status'] === 'To Do') { ?>
                                         <button class="btn btn-sm btn-info text-dark start_task_btn" data-id="<?php echo $task['id']; ?>">Start</button>
@@ -157,7 +172,7 @@ function is_overdue($due_date, $status) {
         </main>
     </div>
 
-    <?php if ($is_admin) { ?>
+    <?php if ($is_line_manager) { ?>
     <!-- Add Task Modal -->
     <div class="modal fade" id="addTaskModal" tabindex="-1">
         <div class="modal-dialog">
@@ -270,7 +285,7 @@ function is_overdue($due_date, $status) {
             </div>
         </div>
     </div>
-    <?php } else { ?>
+    <?php } elseif (!$show_org_wide) { ?>
     <!-- Block Task Modal -->
     <div class="modal fade" id="blockTaskModal" tabindex="-1">
         <div class="modal-dialog">
@@ -309,9 +324,12 @@ function is_overdue($due_date, $status) {
     <script defer>
         let tasks_table = new DataTable('#tasks_table', { order: [] });
 
-        <?php if ($is_admin) { ?>
+        <?php if ($is_line_manager) { ?>
         $('#add_task_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 title: DOMPurify.sanitize($('#add_title').val()).trim(),
@@ -352,6 +370,9 @@ function is_overdue($due_date, $status) {
 
         $('#edit_task_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 id: $('#edit_task_id').val(),
@@ -381,7 +402,7 @@ function is_overdue($due_date, $status) {
                 }
             });
         });
-        <?php } else { ?>
+        <?php } elseif (!$show_org_wide) { ?>
         function update_task_status(id, status, note) {
             $.ajax({
                 url: '../data_processors/update_task_status.php',
@@ -417,6 +438,9 @@ function is_overdue($due_date, $status) {
 
         $('#block_task_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
             const note = DOMPurify.sanitize($('#block_note').val()).trim();
             $('#blockTaskModal').modal('hide');
             update_task_status($('#block_task_id').val(), 'Blocked', note);

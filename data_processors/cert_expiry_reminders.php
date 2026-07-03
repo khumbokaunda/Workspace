@@ -20,7 +20,7 @@ $reminder_windows = array(90, 30, 7);
 $reminders_sent = 0;
 
 foreach ($reminder_windows as $days_out) {
-    $fetch_expiring_sql = "SELECT c.cert_name, c.expiry_date, e.first_name, e.last_name, e.email
+    $fetch_expiring_sql = "SELECT c.employee_id, c.cert_name, c.expiry_date, e.first_name, e.last_name, e.email
                             FROM certifications c
                             JOIN employees e ON e.id = c.employee_id
                             WHERE c.expiry_date = DATE_ADD(CURDATE(), INTERVAL ? DAY)
@@ -36,6 +36,8 @@ foreach ($reminder_windows as $days_out) {
             $conn,
             $notification_text,
             'certification_management',
+            $cert['employee_id'],
+            false,
             $cert['email'],
             "Your certification expires in {$days_out} days"
         );

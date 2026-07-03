@@ -8,14 +8,36 @@ if (!isset($_SESSION['logged_in'])) {
 }
 include "../db_connection.php";
 
-$is_admin = $_SESSION['role'] === 'Admin';
+$role = $_SESSION['role'];
+$is_admin = $role === 'Admin';
+$is_manager = is_manager_tier($role);
 
 if ($is_admin) {
+    // Admin has no approval authority, this view is read-only oversight.
     $leave_requests_sql = "SELECT l.*, e.first_name, e.last_name, e.email
                             FROM leave_requests l
                             JOIN employees e ON e.id = l.employee_id
                             ORDER BY l.created_at DESC";
     $leave_requests_result = $conn->query($leave_requests_sql);
+} elseif ($is_manager) {
+    $employee_id = $_SESSION['employee_id'];
+
+    $own_requests_sql = "SELECT * FROM leave_requests WHERE employee_id = ? ORDER BY created_at DESC";
+    $own_requests_stmt = $conn->prepare($own_requests_sql);
+    $own_requests_stmt->bind_param('i', $employee_id);
+    $own_requests_stmt->execute();
+    $own_requests_result = $own_requests_stmt->get_result();
+
+    $team_requests_sql = "SELECT l.*, e.first_name, e.last_name
+                           FROM leave_requests l
+                           JOIN employees e ON e.id = l.employee_id
+                           WHERE e.manager_id = ?
+                              OR (e.manager_id IS NULL AND e.id != ? AND ? = 'Managing Director')
+                           ORDER BY l.created_at DESC";
+    $team_requests_stmt = $conn->prepare($team_requests_sql);
+    $team_requests_stmt->bind_param('iis', $employee_id, $employee_id, $role);
+    $team_requests_stmt->execute();
+    $team_requests_result = $team_requests_stmt->get_result();
 } else {
     $employee_id = $_SESSION['employee_id'];
     $leave_requests_sql = "SELECT * FROM leave_requests WHERE employee_id = ? ORDER BY created_at DESC";
@@ -23,6 +45,12 @@ if ($is_admin) {
     $leave_requests_stmt->bind_param('i', $employee_id);
     $leave_requests_stmt->execute();
     $leave_requests_result = $leave_requests_stmt->get_result();
+}
+
+function leave_status_badge($status) {
+    if ($status === 'Approved') return 'bg-success';
+    if ($status === 'Rejected') return 'bg-danger';
+    return 'bg-warning text-dark';
 }
 ?>
 <!DOCTYPE html>
@@ -50,7 +78,15 @@ if ($is_admin) {
                 <div>
                     <h1 class="comfortaa-bold fs-3 mb-1">Leave Management</h1>
                     <p class="text-white-50 mb-0">
-                        <?php echo $is_admin ? "Review and decide on leave requests." : "Submit and track your leave requests."; ?>
+                        <?php
+                        if ($is_admin) {
+                            echo "Read-only oversight, mostly for visibility. Approval is handled by each employee's manager, not Admin.";
+                        } elseif ($is_manager) {
+                            echo "Approve requests from your direct reports, and track your own.";
+                        } else {
+                            echo "Submit and track your leave requests.";
+                        }
+                        ?>
                     </p>
                 </div>
                 <?php if (!$is_admin) { ?>
@@ -60,9 +96,83 @@ if ($is_admin) {
                 <?php } ?>
             </div>
 
+            <?php if ($is_manager) { ?>
+            <div class="bg-222 rounded-3 p-3 p-md-4 mb-4">
+                <h2 class="fs-5 comfortaa-bold mb-3">Team Requests Awaiting Your Review</h2>
+                <div class="table-responsive">
+                    <table id="team_leave_table" class="table table-hover align-middle w-100">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Type</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while ($request = $team_requests_result->fetch_assoc()) { ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($request['first_name'] . ' ' . $request['last_name']); ?></td>
+                                <td><?php echo htmlspecialchars($request['leave_type']); ?></td>
+                                <td><?php echo htmlspecialchars($request['start_date']); ?></td>
+                                <td><?php echo htmlspecialchars($request['end_date']); ?></td>
+                                <td><?php echo htmlspecialchars($request['reason'] ?? '-'); ?></td>
+                                <td><span class="badge <?php echo leave_status_badge($request['status']); ?>"><?php echo htmlspecialchars($request['status']); ?></span></td>
+                                <td>
+                                    <?php if ($request['status'] === 'Pending') { ?>
+                                    <button class="btn btn-sm btn-success approve_leave_btn" data-id="<?php echo $request['id']; ?>"
+                                            title="Approve this request" data-tooltip="1">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger reject_leave_btn" data-id="<?php echo $request['id']; ?>"
+                                            title="Reject this request" data-tooltip="1">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                    <?php } else { ?>
+                                    <span class="text-white-50">-</span>
+                                    <?php } ?>
+                                </td>
+                            </tr>
+                            <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-222 rounded-3 p-3 p-md-4">
+                <h2 class="fs-5 comfortaa-bold mb-3">My Requests</h2>
+                <div class="table-responsive">
+                    <table id="own_leave_table" class="table table-hover align-middle w-100">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while ($request = $own_requests_result->fetch_assoc()) { ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($request['leave_type']); ?></td>
+                                <td><?php echo htmlspecialchars($request['start_date']); ?></td>
+                                <td><?php echo htmlspecialchars($request['end_date']); ?></td>
+                                <td><?php echo htmlspecialchars($request['reason'] ?? '-'); ?></td>
+                                <td><span class="badge <?php echo leave_status_badge($request['status']); ?>"><?php echo htmlspecialchars($request['status']); ?></span></td>
+                            </tr>
+                            <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php } else { ?>
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <div class="table-responsive">
-                    <table id="leave_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="leave_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <?php if ($is_admin) { ?><th>Employee</th><?php } ?>
@@ -71,7 +181,6 @@ if ($is_admin) {
                                 <th>End</th>
                                 <th>Reason</th>
                                 <th>Status</th>
-                                <?php if ($is_admin) { ?><th>Actions</th><?php } ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -84,34 +193,14 @@ if ($is_admin) {
                                 <td><?php echo htmlspecialchars($request['start_date']); ?></td>
                                 <td><?php echo htmlspecialchars($request['end_date']); ?></td>
                                 <td><?php echo htmlspecialchars($request['reason'] ?? '-'); ?></td>
-                                <td>
-                                    <?php
-                                    $badge = 'bg-warning text-dark';
-                                    if ($request['status'] === 'Approved') $badge = 'bg-success';
-                                    if ($request['status'] === 'Rejected') $badge = 'bg-danger';
-                                    ?>
-                                    <span class="badge <?php echo $badge; ?>"><?php echo htmlspecialchars($request['status']); ?></span>
-                                </td>
-                                <?php if ($is_admin) { ?>
-                                <td>
-                                    <?php if ($request['status'] === 'Pending') { ?>
-                                    <button class="btn btn-sm btn-success approve_leave_btn" data-id="<?php echo $request['id']; ?>">
-                                        <i class="fa-solid fa-check"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger reject_leave_btn" data-id="<?php echo $request['id']; ?>">
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
-                                    <?php } else { ?>
-                                    <span class="text-white-50">-</span>
-                                    <?php } ?>
-                                </td>
-                                <?php } ?>
+                                <td><span class="badge <?php echo leave_status_badge($request['status']); ?>"><?php echo htmlspecialchars($request['status']); ?></span></td>
                             </tr>
                             <?php } ?>
                         </tbody>
                     </table>
                 </div>
             </div>
+            <?php } ?>
         </main>
     </div>
 
@@ -184,11 +273,19 @@ if ($is_admin) {
             }
         });
 
-        let leave_table = new DataTable('#leave_table');
+        <?php if ($is_manager) { ?>
+        let team_leave_table = new DataTable('#team_leave_table', { order: [] });
+        let own_leave_table = new DataTable('#own_leave_table', { order: [] });
+        <?php } else { ?>
+        let leave_table = new DataTable('#leave_table', { order: [] });
+        <?php } ?>
 
         <?php if (!$is_admin) { ?>
         $('#request_leave_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 leave_type: DOMPurify.sanitize($('#leave_type').val()).trim(),
@@ -215,7 +312,9 @@ if ($is_admin) {
                 }
             });
         });
-        <?php } else { ?>
+        <?php } ?>
+
+        <?php if ($is_manager) { ?>
         $('.approve_leave_btn').on('click', function () {
             const id = $(this).data('id');
 

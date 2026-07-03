@@ -22,8 +22,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $submit_leave_stmt->bind_param('issss', $employee_id, $leave_type, $start_date, $end_date, $reason);
 
     if ($submit_leave_stmt->execute()) {
+        $fetch_manager_sql = "SELECT manager_id FROM employees WHERE id = ?";
+        $fetch_manager_stmt = $conn->prepare($fetch_manager_sql);
+        $fetch_manager_stmt->bind_param('i', $employee_id);
+        $fetch_manager_stmt->execute();
+        $employee = $fetch_manager_stmt->get_result()->fetch_assoc();
+
         $notification_text = "{$_SESSION['username']} submitted a {$leave_type} leave request.";
-        send_notification($conn, $notification_text, 'leave_management');
+        // Routed to the requester's manager so approval reaches the right
+        // person, falling back to the management tier when no manager is set.
+        send_notification($conn, $notification_text, 'leave_management', $employee['manager_id'], true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $submit_leave_stmt->error));

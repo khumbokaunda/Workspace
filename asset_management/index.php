@@ -8,7 +8,7 @@ if (!isset($_SESSION['logged_in'])) {
 }
 include "../db_connection.php";
 
-$is_admin = $_SESSION['role'] === 'Admin';
+$can_manage = can_manage_org($_SESSION['role']);
 
 function asset_status_badge($status) {
     switch ($status) {
@@ -20,7 +20,7 @@ function asset_status_badge($status) {
     }
 }
 
-if ($is_admin) {
+if ($can_manage) {
     $assets_sql = "SELECT * FROM assets ORDER BY asset_name ASC";
     $assets_result = $conn->query($assets_sql);
     $assets_list = array();
@@ -86,10 +86,10 @@ if ($is_admin) {
                 <div>
                     <h1 class="comfortaa-bold fs-3 mb-1">Assets</h1>
                     <p class="text-white-50 mb-0">
-                        <?php echo $is_admin ? "Track equipment and manage assignments." : "Equipment currently assigned to you."; ?>
+                        <?php echo $can_manage ? "Track equipment and manage assignments." : "Equipment currently assigned to you."; ?>
                     </p>
                 </div>
-                <?php if ($is_admin) { ?>
+                <?php if ($can_manage) { ?>
                 <button class="btn btn-success comfortaa-bold" data-bs-toggle="modal" data-bs-target="#addAssetModal">
                     <i class="fa-solid fa-plus me-2"></i>Add Asset
                 </button>
@@ -98,8 +98,8 @@ if ($is_admin) {
 
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <div class="table-responsive">
-                    <?php if ($is_admin) { ?>
-                    <table id="assets_table" class="table table-dark table-hover align-middle w-100">
+                    <?php if ($can_manage) { ?>
+                    <table id="assets_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <th>Tag</th>
@@ -131,29 +131,34 @@ if ($is_admin) {
                                             data-warranty_expiry="<?php echo htmlspecialchars($asset['warranty_expiry'] ?? ''); ?>"
                                             data-status="<?php echo htmlspecialchars($asset['status']); ?>"
                                             data-notes="<?php echo htmlspecialchars($asset['notes'] ?? ''); ?>"
-                                            data-bs-toggle="modal" data-bs-target="#editAssetModal">
+                                            data-bs-toggle="modal" data-bs-target="#editAssetModal"
+                                            title="Edit asset" data-tooltip="1">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                     <?php if ($asset['status'] === 'Available') { ?>
                                     <button class="btn btn-sm btn-info text-dark assign_asset_btn"
                                             data-id="<?php echo $asset['id']; ?>"
                                             data-name="<?php echo htmlspecialchars($asset['asset_name']); ?>"
-                                            data-bs-toggle="modal" data-bs-target="#assignAssetModal">
+                                            data-bs-toggle="modal" data-bs-target="#assignAssetModal"
+                                            title="Assign to an employee" data-tooltip="1">
                                         <i class="fa-solid fa-user-plus"></i>
                                     </button>
                                     <?php } ?>
                                     <?php if ($asset['status'] === 'Assigned') { ?>
-                                    <button class="btn btn-sm btn-warning text-dark return_asset_btn" data-id="<?php echo $asset['id']; ?>">
+                                    <button class="btn btn-sm btn-warning text-dark return_asset_btn" data-id="<?php echo $asset['id']; ?>"
+                                            title="Mark as returned" data-tooltip="1">
                                         <i class="fa-solid fa-rotate-left"></i>
                                     </button>
                                     <?php } ?>
                                     <button class="btn btn-sm btn-333 bg-333 text-light history_asset_btn"
                                             data-name="<?php echo htmlspecialchars($asset['asset_name']); ?>"
                                             data-history='<?php echo htmlspecialchars(json_encode($history_by_asset[$asset['id']] ?? array())); ?>'
-                                            data-bs-toggle="modal" data-bs-target="#historyAssetModal">
+                                            data-bs-toggle="modal" data-bs-target="#historyAssetModal"
+                                            title="View assignment history" data-tooltip="1">
                                         <i class="fa-solid fa-clock-rotate-left"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger delete_asset_btn" data-id="<?php echo $asset['id']; ?>">
+                                    <button class="btn btn-sm btn-danger delete_asset_btn" data-id="<?php echo $asset['id']; ?>"
+                                            title="Delete asset permanently" data-tooltip="1">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </td>
@@ -162,7 +167,7 @@ if ($is_admin) {
                         </tbody>
                     </table>
                     <?php } else { ?>
-                    <table id="assets_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="assets_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <th>Tag</th>
@@ -190,7 +195,7 @@ if ($is_admin) {
         </main>
     </div>
 
-    <?php if ($is_admin) { ?>
+    <?php if ($can_manage) { ?>
     <!-- Add Asset Modal -->
     <div class="modal fade" id="addAssetModal" tabindex="-1">
         <div class="modal-dialog">
@@ -376,12 +381,15 @@ if ($is_admin) {
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../src/script.js"></script>
-    <?php if ($is_admin) { ?>
+    <?php if ($can_manage) { ?>
     <script defer>
         let assets_table = new DataTable('#assets_table');
 
         $('#add_asset_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 asset_tag: DOMPurify.sanitize($('#add_asset_tag').val()).trim(),
@@ -426,6 +434,9 @@ if ($is_admin) {
 
         $('#edit_asset_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 id: $('#edit_asset_id').val(),
@@ -465,6 +476,9 @@ if ($is_admin) {
 
         $('#assign_asset_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 asset_id: $('#assign_asset_id').val(),
@@ -532,7 +546,7 @@ if ($is_admin) {
                 return;
             }
 
-            let rows = '<table class="table table-dark table-sm"><thead><tr><th>Employee</th><th>Assigned</th><th>Returned</th></tr></thead><tbody>';
+            let rows = '<table class="table table-sm"><thead><tr><th>Employee</th><th>Assigned</th><th>Returned</th></tr></thead><tbody>';
             history.forEach(function (entry) {
                 rows += '<tr><td>' + escape_html(entry.employee) + '</td><td>' + escape_html(entry.assigned_date) + '</td><td>' + escape_html(entry.returned_date || 'Still assigned') + '</td></tr>';
             });

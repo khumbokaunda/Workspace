@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($check_out_stmt->execute()) {
         $notification_text = "{$_SESSION['username']} checked out.";
-        send_notification($conn, $notification_text, 'attendance');
+        send_notification($conn, $notification_text, 'attendance', $employee_id, false);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $check_out_stmt->error));

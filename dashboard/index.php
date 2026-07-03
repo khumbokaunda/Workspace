@@ -7,15 +7,17 @@ if (!isset($_SESSION['logged_in'])) {
     exit;
 }
 include "../db_connection.php";
+require_once "../includes/send_notification.php";
 
-$is_admin = $_SESSION['role'] === 'Admin';
+$can_manage = can_manage_org($_SESSION['role']);
 $today = date('Y-m-d');
+$employee_id = $_SESSION['employee_id'];
 
 // Certification statuses can drift out of sync with expiry_date, so resync
 // before computing any stats or lists that depend on them.
 $conn->query("UPDATE certifications SET status = 'Expired' WHERE expiry_date IS NOT NULL AND expiry_date < CURDATE() AND status != 'Expired'");
 
-if ($is_admin) {
+if ($can_manage) {
     $total_employees = $conn->query("SELECT COUNT(*) AS total FROM employees WHERE status != 'Terminated'")->fetch_assoc()['total'];
     $present_today = $conn->query("SELECT COUNT(*) AS total FROM attendance WHERE work_date = CURDATE() AND status IN ('Present', 'Late', 'Remote')")->fetch_assoc()['total'];
     $pending_leave = $conn->query("SELECT COUNT(*) AS total FROM leave_requests WHERE status = 'Pending'")->fetch_assoc()['total'];
@@ -30,8 +32,6 @@ if ($is_admin) {
                             ORDER BY c.expiry_date ASC";
     $expiring_certs_result = $conn->query($expiring_certs_sql);
 } else {
-    $employee_id = $_SESSION['employee_id'];
-
     $days_present_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM attendance WHERE employee_id = ? AND status IN ('Present', 'Late', 'Remote') AND work_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')");
     $days_present_stmt->bind_param('i', $employee_id);
     $days_present_stmt->execute();
@@ -63,7 +63,8 @@ if ($is_admin) {
     $expiring_certs_result = $expiring_certs_stmt->get_result();
 }
 
-$latest_notifications_result = $conn->query("SELECT * FROM notifications ORDER BY time_stamp DESC LIMIT 10");
+$notifications_sql = "SELECT * FROM notifications WHERE " . notifications_visibility_sql($_SESSION['role'], $employee_id) . " ORDER BY time_stamp DESC LIMIT 10";
+$latest_notifications_result = $conn->query($notifications_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -89,11 +90,11 @@ $latest_notifications_result = $conn->query("SELECT * FROM notifications ORDER B
             <h1 class="comfortaa-bold fs-3 mb-1">Dashboard</h1>
             <p class="text-white-50 mb-4">
                 Welcome back, <?php echo htmlspecialchars($_SESSION['username']); ?>.
-                <?php echo $is_admin ? "Here's how the organization is doing." : "Here's where things stand for you."; ?>
+                <?php echo $can_manage ? "Here's how the organization is doing." : "Here's where things stand for you."; ?>
             </p>
 
             <div class="row g-3 mb-4">
-                <?php if ($is_admin) { ?>
+                <?php if ($can_manage) { ?>
                 <div class="col-xxl-2 col-xl-4 col-lg-4 col-md-6 col-sm-6 col-12">
                     <div class="stat-card bg-222">
                         <i class="fa-solid fa-users text-success mb-2"></i>
@@ -173,10 +174,10 @@ $latest_notifications_result = $conn->query("SELECT * FROM notifications ORDER B
                     <div class="bg-222 rounded-3 p-3 p-md-4 h-100">
                         <h2 class="fs-5 comfortaa-bold mb-3">Certifications Expiring Within 90 Days</h2>
                         <div class="table-responsive">
-                            <table id="expiring_certs_table" class="table table-dark table-hover align-middle w-100">
+                            <table id="expiring_certs_table" class="table table-hover align-middle w-100">
                                 <thead>
                                     <tr>
-                                        <?php if ($is_admin) { ?><th>Employee</th><?php } ?>
+                                        <?php if ($can_manage) { ?><th>Employee</th><?php } ?>
                                         <th>Certification</th>
                                         <th>Code</th>
                                         <th>Expiry Date</th>
@@ -185,7 +186,7 @@ $latest_notifications_result = $conn->query("SELECT * FROM notifications ORDER B
                                 <tbody>
                                     <?php while ($cert = $expiring_certs_result->fetch_assoc()) { ?>
                                     <tr>
-                                        <?php if ($is_admin) { ?>
+                                        <?php if ($can_manage) { ?>
                                         <td><?php echo htmlspecialchars($cert['first_name'] . ' ' . $cert['last_name']); ?></td>
                                         <?php } ?>
                                         <td><?php echo htmlspecialchars($cert['cert_name']); ?></td>

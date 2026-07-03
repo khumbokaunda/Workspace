@@ -59,7 +59,7 @@ while ($row = $employees_result->fetch_assoc()) {
 
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <div class="table-responsive">
-                    <table id="users_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="users_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <th>Username</th>
@@ -74,7 +74,12 @@ while ($row = $employees_result->fetch_assoc()) {
                             <tr>
                                 <td><?php echo htmlspecialchars($user['username']); ?></td>
                                 <td>
-                                    <span class="badge <?php echo $user['role'] === 'Admin' ? 'bg-success' : 'bg-secondary'; ?>">
+                                    <?php
+                                    $role_badge = 'bg-secondary';
+                                    if ($user['role'] === 'Admin') $role_badge = 'bg-success';
+                                    if (is_manager_tier($user['role'])) $role_badge = 'bg-info text-dark';
+                                    ?>
+                                    <span class="badge <?php echo $role_badge; ?>">
                                         <?php echo htmlspecialchars($user['role']); ?>
                                     </span>
                                 </td>
@@ -88,16 +93,19 @@ while ($row = $employees_result->fetch_assoc()) {
                                             data-username="<?php echo htmlspecialchars($user['username']); ?>"
                                             data-role="<?php echo htmlspecialchars($user['role']); ?>"
                                             data-employee_id="<?php echo (int) $user['employee_id']; ?>"
-                                            data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            data-bs-toggle="modal" data-bs-target="#editUserModal"
+                                            title="Edit account" data-tooltip="1">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                     <button class="btn btn-sm btn-333 bg-333 text-light reset_password_btn"
                                             data-id="<?php echo $user['id']; ?>"
                                             data-username="<?php echo htmlspecialchars($user['username']); ?>"
-                                            data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                                            data-bs-toggle="modal" data-bs-target="#resetPasswordModal"
+                                            title="Reset password" data-tooltip="1">
                                         <i class="fa-solid fa-key"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger delete_user_btn" data-id="<?php echo $user['id']; ?>">
+                                    <button class="btn btn-sm btn-danger delete_user_btn" data-id="<?php echo $user['id']; ?>"
+                                            title="Delete account permanently" data-tooltip="1">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </td>
@@ -137,10 +145,22 @@ while ($row = $employees_result->fetch_assoc()) {
                             </div>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <input type="password" id="add_confirm_password" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3"
+                                       required data-parsley-equalto="#add_password" data-parsley-required-message="Please confirm the password."
+                                       data-parsley-equalto-message="Passwords do not match.">
+                                <button class="btn btn-333 bg-333 border-0 text-light" type="button" onclick="view_password('add_confirm_password', 'add_confirm_password_icon')">
+                                    <i class="fa-solid fa-eye" id="add_confirm_password_icon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Role</label>
                             <select id="add_role" name="role" class="form-select bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3">
-                                <option value="Staff">Staff</option>
-                                <option value="Admin">Admin</option>
+                                <?php foreach (all_roles() as $role_option) { ?>
+                                <option value="<?php echo htmlspecialchars($role_option); ?>"><?php echo htmlspecialchars($role_option); ?></option>
+                                <?php } ?>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -182,8 +202,9 @@ while ($row = $employees_result->fetch_assoc()) {
                         <div class="mb-3">
                             <label class="form-label">Role</label>
                             <select id="edit_role" name="role" class="form-select bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3">
-                                <option value="Staff">Staff</option>
-                                <option value="Admin">Admin</option>
+                                <?php foreach (all_roles() as $role_option) { ?>
+                                <option value="<?php echo htmlspecialchars($role_option); ?>"><?php echo htmlspecialchars($role_option); ?></option>
+                                <?php } ?>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -230,6 +251,17 @@ while ($row = $employees_result->fetch_assoc()) {
                                 </button>
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirm New Password</label>
+                            <div class="input-group">
+                                <input type="password" id="reset_confirm_password" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3"
+                                       required data-parsley-equalto="#reset_password" data-parsley-required-message="Please confirm the new password."
+                                       data-parsley-equalto-message="Passwords do not match.">
+                                <button class="btn btn-333 bg-333 border-0 text-light" type="button" onclick="view_password('reset_confirm_password', 'reset_confirm_password_icon')">
+                                    <i class="fa-solid fa-eye" id="reset_confirm_password_icon"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer border-secondary">
                         <button type="button" class="btn btn-333 bg-333 text-light" data-bs-dismiss="modal">Cancel</button>
@@ -253,6 +285,9 @@ while ($row = $employees_result->fetch_assoc()) {
 
         $('#add_user_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 username: DOMPurify.sanitize($('#add_username').val()).trim(),
@@ -289,6 +324,9 @@ while ($row = $employees_result->fetch_assoc()) {
 
         $('#edit_user_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 id: $('#edit_id').val(),
@@ -323,6 +361,9 @@ while ($row = $employees_result->fetch_assoc()) {
 
         $('#reset_password_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 id: $('#reset_id').val(),

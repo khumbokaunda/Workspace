@@ -8,14 +8,27 @@ if (!isset($_SESSION['logged_in'])) {
 }
 include "../db_connection.php";
 
-$is_admin = $_SESSION['role'] === 'Admin';
+$can_manage = can_manage_org($_SESSION['role']);
 
-if ($is_admin) {
-    $employees_sql = "SELECT * FROM employees ORDER BY created_at DESC";
+if ($can_manage) {
+    $employees_sql = "SELECT e.*, m.first_name AS manager_first_name, m.last_name AS manager_last_name
+                       FROM employees e
+                       LEFT JOIN employees m ON m.id = e.manager_id
+                       ORDER BY e.created_at DESC";
     $employees_result = $conn->query($employees_sql);
+
+    $managers_sql = "SELECT id, first_name, last_name FROM employees WHERE status != 'Terminated' ORDER BY first_name, last_name";
+    $managers_result = $conn->query($managers_sql);
+    $managers_list = array();
+    while ($row = $managers_result->fetch_assoc()) {
+        $managers_list[] = $row;
+    }
 } else {
     $employee_id = $_SESSION['employee_id'];
-    $fetch_own_employee_sql = "SELECT * FROM employees WHERE id = ?";
+    $fetch_own_employee_sql = "SELECT e.*, m.first_name AS manager_first_name, m.last_name AS manager_last_name
+                                FROM employees e
+                                LEFT JOIN employees m ON m.id = e.manager_id
+                                WHERE e.id = ?";
     $fetch_own_employee_stmt = $conn->prepare($fetch_own_employee_sql);
     $fetch_own_employee_stmt->bind_param('i', $employee_id);
     $fetch_own_employee_stmt->execute();
@@ -48,20 +61,20 @@ if ($is_admin) {
                 <div>
                     <h1 class="comfortaa-bold fs-3 mb-1">Employees</h1>
                     <p class="text-white-50 mb-0">
-                        <?php echo $is_admin ? "Manage your organization's employee records." : "Your employee profile."; ?>
+                        <?php echo $can_manage ? "Manage your organization's employee records." : "Your employee profile."; ?>
                     </p>
                 </div>
-                <?php if ($is_admin) { ?>
+                <?php if ($can_manage) { ?>
                 <button class="btn btn-success comfortaa-bold" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
                     <i class="fa-solid fa-plus me-2"></i>Add Employee
                 </button>
                 <?php } ?>
             </div>
 
-            <?php if ($is_admin) { ?>
+            <?php if ($can_manage) { ?>
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <div class="table-responsive">
-                    <table id="employees_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="employees_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -69,6 +82,8 @@ if ($is_admin) {
                                 <th>Phone</th>
                                 <th>Position</th>
                                 <th>Department</th>
+                                <th>Specialization</th>
+                                <th>Manager</th>
                                 <th>Hire Date</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -82,6 +97,8 @@ if ($is_admin) {
                                 <td><?php echo htmlspecialchars($employee['phone'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($employee['position'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($employee['department'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($employee['specialization'] ?? '-'); ?></td>
+                                <td><?php echo $employee['manager_id'] ? htmlspecialchars($employee['manager_first_name'] . ' ' . $employee['manager_last_name']) : '-'; ?></td>
                                 <td><?php echo htmlspecialchars($employee['hire_date'] ?? '-'); ?></td>
                                 <td>
                                     <?php
@@ -91,7 +108,7 @@ if ($is_admin) {
                                     ?>
                                     <span class="badge <?php echo $status_badge; ?>"><?php echo htmlspecialchars($employee['status']); ?></span>
                                 </td>
-                                <td>
+                                <td class="text-nowrap">
                                     <button class="btn btn-sm btn-333 bg-333 text-light edit_employee_btn"
                                             data-id="<?php echo $employee['id']; ?>"
                                             data-first_name="<?php echo htmlspecialchars($employee['first_name']); ?>"
@@ -100,13 +117,17 @@ if ($is_admin) {
                                             data-phone="<?php echo htmlspecialchars($employee['phone'] ?? ''); ?>"
                                             data-position="<?php echo htmlspecialchars($employee['position'] ?? ''); ?>"
                                             data-department="<?php echo htmlspecialchars($employee['department'] ?? ''); ?>"
+                                            data-specialization="<?php echo htmlspecialchars($employee['specialization'] ?? ''); ?>"
+                                            data-manager_id="<?php echo (int) $employee['manager_id']; ?>"
                                             data-hire_date="<?php echo htmlspecialchars($employee['hire_date'] ?? ''); ?>"
                                             data-status="<?php echo htmlspecialchars($employee['status']); ?>"
-                                            data-bs-toggle="modal" data-bs-target="#editEmployeeModal">
+                                            data-bs-toggle="modal" data-bs-target="#editEmployeeModal"
+                                            title="Edit employee" data-tooltip="1">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                     <?php if ($employee['status'] !== 'Terminated') { ?>
-                                    <button class="btn btn-sm btn-danger delete_employee_btn" data-id="<?php echo $employee['id']; ?>">
+                                    <button class="btn btn-sm btn-danger delete_employee_btn" data-id="<?php echo $employee['id']; ?>"
+                                            title="Terminate employee (sets status to Terminated)" data-tooltip="1">
                                         <i class="fa-solid fa-user-slash"></i>
                                     </button>
                                     <?php } ?>
@@ -134,6 +155,10 @@ if ($is_admin) {
                     <dd class="col-sm-8"><?php echo htmlspecialchars($own_employee['phone'] ?? '-'); ?></dd>
                     <dt class="col-sm-4 text-white-50">Department</dt>
                     <dd class="col-sm-8"><?php echo htmlspecialchars($own_employee['department'] ?? '-'); ?></dd>
+                    <dt class="col-sm-4 text-white-50">Specialization</dt>
+                    <dd class="col-sm-8"><?php echo htmlspecialchars($own_employee['specialization'] ?? '-'); ?></dd>
+                    <dt class="col-sm-4 text-white-50">Manager</dt>
+                    <dd class="col-sm-8"><?php echo $own_employee['manager_id'] ? htmlspecialchars($own_employee['manager_first_name'] . ' ' . $own_employee['manager_last_name']) : '-'; ?></dd>
                     <dt class="col-sm-4 text-white-50">Hire Date</dt>
                     <dd class="col-sm-8"><?php echo htmlspecialchars($own_employee['hire_date'] ?? '-'); ?></dd>
                     <dt class="col-sm-4 text-white-50">Status</dt>
@@ -147,7 +172,7 @@ if ($is_admin) {
         </main>
     </div>
 
-    <?php if ($is_admin) { ?>
+    <?php if ($can_manage) { ?>
     <!-- Add Employee Modal -->
     <div class="modal fade" id="addEmployeeModal" tabindex="-1">
         <div class="modal-dialog">
@@ -184,6 +209,22 @@ if ($is_admin) {
                         <div class="mb-3">
                             <label class="form-label">Department</label>
                             <input type="text" id="add_department" name="department" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Specialization</label>
+                            <input type="text" id="add_specialization" name="specialization" placeholder="e.g. Networks &amp; Security, Infrastructure"
+                                   class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Manager</label>
+                            <select id="add_manager_id" name="manager_id" class="form-select bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3">
+                                <option value="">No manager</option>
+                                <?php foreach ($managers_list as $manager) { ?>
+                                <option value="<?php echo $manager['id']; ?>">
+                                    <?php echo htmlspecialchars($manager['first_name'] . ' ' . $manager['last_name']); ?>
+                                </option>
+                                <?php } ?>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Hire Date</label>
@@ -236,6 +277,21 @@ if ($is_admin) {
                             <input type="text" id="edit_department" name="department" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3">
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Specialization</label>
+                            <input type="text" id="edit_specialization" name="specialization" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Manager</label>
+                            <select id="edit_manager_id" name="manager_id" class="form-select bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3">
+                                <option value="">No manager</option>
+                                <?php foreach ($managers_list as $manager) { ?>
+                                <option value="<?php echo $manager['id']; ?>">
+                                    <?php echo htmlspecialchars($manager['first_name'] . ' ' . $manager['last_name']); ?>
+                                </option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Hire Date</label>
                             <input type="date" id="edit_hire_date" name="hire_date" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3" required>
                         </div>
@@ -266,12 +322,15 @@ if ($is_admin) {
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../src/script.js"></script>
-    <?php if ($is_admin) { ?>
+    <?php if ($can_manage) { ?>
     <script defer>
         let employees_table = new DataTable('#employees_table');
 
         $('#add_employee_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 first_name: DOMPurify.sanitize($('#add_first_name').val()).trim(),
@@ -280,6 +339,8 @@ if ($is_admin) {
                 phone: DOMPurify.sanitize($('#add_phone').val()).trim(),
                 position: DOMPurify.sanitize($('#add_position').val()).trim(),
                 department: DOMPurify.sanitize($('#add_department').val()).trim(),
+                specialization: DOMPurify.sanitize($('#add_specialization').val()).trim(),
+                manager_id: DOMPurify.sanitize($('#add_manager_id').val()).trim(),
                 hire_date: DOMPurify.sanitize($('#add_hire_date').val()).trim()
             };
 
@@ -310,12 +371,17 @@ if ($is_admin) {
             $('#edit_phone').val($(this).data('phone'));
             $('#edit_position').val($(this).data('position'));
             $('#edit_department').val($(this).data('department'));
+            $('#edit_specialization').val($(this).data('specialization'));
+            $('#edit_manager_id').val($(this).data('manager_id'));
             $('#edit_hire_date').val($(this).data('hire_date'));
             $('#edit_status').val($(this).data('status'));
         });
 
         $('#edit_employee_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 id: $('#edit_id').val(),
@@ -325,6 +391,8 @@ if ($is_admin) {
                 phone: DOMPurify.sanitize($('#edit_phone').val()).trim(),
                 position: DOMPurify.sanitize($('#edit_position').val()).trim(),
                 department: DOMPurify.sanitize($('#edit_department').val()).trim(),
+                specialization: DOMPurify.sanitize($('#edit_specialization').val()).trim(),
+                manager_id: DOMPurify.sanitize($('#edit_manager_id').val()).trim(),
                 hire_date: DOMPurify.sanitize($('#edit_hire_date').val()).trim(),
                 status: DOMPurify.sanitize($('#edit_status').val()).trim()
             };

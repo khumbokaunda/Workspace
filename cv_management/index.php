@@ -72,7 +72,7 @@ if ($is_admin) {
 
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <div class="table-responsive">
-                    <table id="cv_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="cv_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <?php if ($is_admin) { ?><th>Employee</th><?php } ?>
@@ -96,11 +96,13 @@ if ($is_admin) {
                                 <td><?php echo htmlspecialchars($cv['uploaded_at']); ?></td>
                                 <td><?php echo htmlspecialchars($cv['notes'] ?? '-'); ?></td>
                                 <td>
-                                    <a href="../data_processors/download_cv.php?id=<?php echo $cv['id']; ?>" class="btn btn-sm btn-333 bg-333 text-light">
+                                    <a href="../data_processors/download_cv.php?id=<?php echo $cv['id']; ?>" class="btn btn-sm btn-333 bg-333 text-light"
+                                       title="Download file" data-tooltip="1">
                                         <i class="fa-solid fa-download"></i>
                                     </a>
                                     <?php if ($is_admin) { ?>
-                                    <button class="btn btn-sm btn-danger delete_cv_btn" data-id="<?php echo $cv['id']; ?>">
+                                    <button class="btn btn-sm btn-danger delete_cv_btn" data-id="<?php echo $cv['id']; ?>"
+                                            title="Delete file permanently" data-tooltip="1">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                     <?php } ?>
@@ -171,6 +173,9 @@ if ($is_admin) {
 
         $('#upload_cv_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const form_data = new FormData();
             <?php if ($is_admin) { ?>

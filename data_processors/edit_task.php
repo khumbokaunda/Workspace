@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../db_connection.php';
-$admin_only = true;
+$line_manager_only = true;
 require_once '../includes/auth_check.php';
 require_once '../includes/send_notification.php';
 
@@ -22,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $edit_task_stmt->bind_param('ssissssi', $title, $description, $assigned_to, $priority, $status, $due_date, $completed_at, $id);
 
     if ($edit_task_stmt->execute()) {
-        $notification_text = "The task \"{$title}\" was updated by an administrator.";
-        send_notification($conn, $notification_text, 'task_management');
+        $notification_text = "The task \"{$title}\" was updated by a manager.";
+        send_notification($conn, $notification_text, 'task_management', $assigned_to, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $edit_task_stmt->error));

@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($check_in_stmt->execute()) {
         $notification_text = "{$_SESSION['username']} checked in" . ($status === 'Late' ? ' late' : '') . ".";
-        send_notification($conn, $notification_text, 'attendance');
+        send_notification($conn, $notification_text, 'attendance', $employee_id, false);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $check_in_stmt->error));

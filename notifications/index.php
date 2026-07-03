@@ -7,11 +7,14 @@ if (!isset($_SESSION['logged_in'])) {
     exit;
 }
 include "../db_connection.php";
+require_once "../includes/send_notification.php";
 
-$notifications_sql = "SELECT * FROM notifications ORDER BY time_stamp DESC";
+$visibility_sql = notifications_visibility_sql($_SESSION['role'], $_SESSION['employee_id']);
+
+$notifications_sql = "SELECT * FROM notifications WHERE {$visibility_sql} ORDER BY time_stamp DESC";
 $notifications_result = $conn->query($notifications_sql);
 
-$associations_sql = "SELECT DISTINCT association FROM notifications ORDER BY association ASC";
+$associations_sql = "SELECT DISTINCT association FROM notifications WHERE {$visibility_sql} ORDER BY association ASC";
 $associations_result = $conn->query($associations_sql);
 $associations_list = array();
 while ($row = $associations_result->fetch_assoc()) {
@@ -53,7 +56,7 @@ while ($row = $associations_result->fetch_assoc()) {
                     </select>
                 </div>
                 <div class="table-responsive">
-                    <table id="notifications_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="notifications_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <th>Notification</th>

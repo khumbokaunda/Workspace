@@ -65,6 +65,9 @@ if (isset($_SESSION['logged_in'])) {
     <script defer>
         $('#login_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const username = DOMPurify.sanitize($('#username').val()).trim();
             const password = DOMPurify.sanitize($('#password').val()).trim();

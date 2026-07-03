@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($add_user_stmt->execute()) {
         $notification_text = "A new user account, {$username}, was created with the {$role} role.";
-        send_notification($conn, $notification_text, 'user_management');
+        send_notification($conn, $notification_text, 'user_management', $employee_id, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $add_user_stmt->error));

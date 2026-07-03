@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($update_status_stmt->execute()) {
         $notification_text = "{$_SESSION['username']} moved the task \"{$task['title']}\" to {$status}.";
-        send_notification($conn, $notification_text, 'task_management');
+        send_notification($conn, $notification_text, 'task_management', null, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $update_status_stmt->error));

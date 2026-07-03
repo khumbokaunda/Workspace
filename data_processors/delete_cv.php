@@ -8,7 +8,7 @@ require_once '../includes/send_notification.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = (int) $_POST['id'];
 
-    $fetch_cv_sql = "SELECT file_path, file_name_original FROM cv_records WHERE id = ?";
+    $fetch_cv_sql = "SELECT employee_id, file_path, file_name_original FROM cv_records WHERE id = ?";
     $fetch_cv_stmt = $conn->prepare($fetch_cv_sql);
     $fetch_cv_stmt->bind_param('i', $id);
     $fetch_cv_stmt->execute();
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $notification_text = "The CV file {$cv['file_name_original']} was deleted.";
-        send_notification($conn, $notification_text, 'cv_management');
+        send_notification($conn, $notification_text, 'cv_management', $cv['employee_id'], false);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $delete_cv_stmt->error));

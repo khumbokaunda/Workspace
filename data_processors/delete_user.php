@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($delete_user_stmt->execute() && $user) {
         $notification_text = "The user account {$user['username']} was deleted.";
-        send_notification($conn, $notification_text, 'user_management');
+        send_notification($conn, $notification_text, 'user_management', null, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $delete_user_stmt->error));

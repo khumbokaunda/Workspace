@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $fetch_username_stmt->get_result()->fetch_assoc();
 
         $notification_text = "The password for {$user['username']} was reset by an administrator.";
-        send_notification($conn, $notification_text, 'user_management');
+        send_notification($conn, $notification_text, 'user_management', null, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $reset_password_stmt->error));

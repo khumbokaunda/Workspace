@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($edit_user_stmt->execute()) {
         $notification_text = "The user account {$username} was updated.";
-        send_notification($conn, $notification_text, 'user_management');
+        send_notification($conn, $notification_text, 'user_management', $employee_id, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $edit_user_stmt->error));

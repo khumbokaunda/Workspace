@@ -8,9 +8,9 @@ if (!isset($_SESSION['logged_in'])) {
 }
 include "../db_connection.php";
 
-$is_admin = $_SESSION['role'] === 'Admin';
+$can_manage = can_manage_org($_SESSION['role']);
 
-if ($is_admin) {
+if ($can_manage) {
     $start_date = isset($_GET['start_date']) && $_GET['start_date'] !== '' ? $_GET['start_date'] : date('Y-m-01');
     $end_date = isset($_GET['end_date']) && $_GET['end_date'] !== '' ? $_GET['end_date'] : date('Y-m-d');
 
@@ -70,10 +70,10 @@ if ($is_admin) {
         <main class="flex-grow-1 p-3 p-md-4">
             <h1 class="comfortaa-bold fs-3 mb-1">Attendance</h1>
             <p class="text-white-50 mb-4">
-                <?php echo $is_admin ? "Review and correct attendance across the organization." : "Check in and check out, and review your history."; ?>
+                <?php echo $can_manage ? "Review and correct attendance across the organization." : "Check in and check out, and review your history."; ?>
             </p>
 
-            <?php if (!$is_admin) { ?>
+            <?php if (!$can_manage) { ?>
             <div class="bg-222 rounded-3 p-4 mb-4">
                 <div class="d-flex flex-wrap align-items-center gap-3">
                     <div>
@@ -104,7 +104,7 @@ if ($is_admin) {
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <h2 class="fs-5 comfortaa-bold mb-3">My History</h2>
                 <div class="table-responsive">
-                    <table id="attendance_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="attendance_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -160,7 +160,7 @@ if ($is_admin) {
 
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <div class="table-responsive">
-                    <table id="attendance_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="attendance_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
                                 <th>Employee</th>
@@ -196,7 +196,8 @@ if ($is_admin) {
                                             data-check_out="<?php echo htmlspecialchars($record['check_out'] ?? ''); ?>"
                                             data-status="<?php echo htmlspecialchars($record['status']); ?>"
                                             data-notes="<?php echo htmlspecialchars($record['notes'] ?? ''); ?>"
-                                            data-bs-toggle="modal" data-bs-target="#editAttendanceModal">
+                                            data-bs-toggle="modal" data-bs-target="#editAttendanceModal"
+                                            title="Correct this attendance record" data-tooltip="1">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                 </td>
@@ -210,7 +211,7 @@ if ($is_admin) {
         </main>
     </div>
 
-    <?php if ($is_admin) { ?>
+    <?php if ($can_manage) { ?>
     <!-- Mark Absence Modal -->
     <div class="modal fade" id="markAbsenceModal" tabindex="-1">
         <div class="modal-dialog">
@@ -303,7 +304,7 @@ if ($is_admin) {
     <script defer>
         let attendance_table = new DataTable('#attendance_table', { order: [] });
 
-        <?php if (!$is_admin) { ?>
+        <?php if (!$can_manage) { ?>
         $('#check_in_btn').on('click', function () {
             $.ajax({
                 url: '../data_processors/check_in.php',
@@ -352,6 +353,9 @@ if ($is_admin) {
 
         $('#edit_attendance_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 id: $('#edit_attendance_id').val(),
@@ -382,6 +386,9 @@ if ($is_admin) {
 
         $('#mark_absence_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 employee_id: DOMPurify.sanitize($('#absence_employee_id').val()).trim(),

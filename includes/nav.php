@@ -4,6 +4,12 @@
 $active_page = isset($_SESSION['page_name']) ? $_SESSION['page_name'] : '';
 $is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'Admin';
 ?>
+<script>
+    (function () {
+        var saved = localStorage.getItem('workdesk_theme');
+        document.documentElement.setAttribute('data-bs-theme', saved === 'light' ? 'light' : 'dark');
+    })();
+</script>
 <header class="navbar navbar-expand-lg bg-222 shadow sticky-top px-3 py-2">
     <div class="d-flex align-items-center gap-2">
         <button class="btn btn-outline-light d-lg-none border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
@@ -16,7 +22,11 @@ $is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'Admin';
     </div>
 
     <div class="ms-auto d-flex align-items-center gap-3">
-        <a href="../notifications" class="text-light position-relative" title="Notifications">
+        <button type="button" class="btn btn-333 bg-333 text-light border-0 theme-toggle-btn" onclick="toggle_theme()"
+                title="Toggle light/dark theme" data-tooltip="1">
+            <i class="fa-solid fa-moon" id="theme_toggle_icon"></i>
+        </button>
+        <a href="../notifications" class="text-light position-relative" title="Notifications" data-tooltip="1">
             <i class="fa-solid fa-bell fs-5"></i>
         </a>
         <div class="dropdown">
@@ -38,6 +48,16 @@ $is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'Admin';
         </div>
     </div>
 </header>
+<script>
+    (function () {
+        var theme = document.documentElement.getAttribute('data-bs-theme');
+        var icon = document.getElementById('theme_toggle_icon');
+        if (icon) {
+            icon.classList.remove('fa-sun', 'fa-moon');
+            icon.classList.add(theme === 'light' ? 'fa-sun' : 'fa-moon');
+        }
+    })();
+</script>
 
 <div class="offcanvas offcanvas-start bg-222 text-light" tabindex="-1" id="mobileSidebar">
     <div class="offcanvas-header">

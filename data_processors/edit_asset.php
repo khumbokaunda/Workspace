@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../db_connection.php';
-$admin_only = true;
+$org_manager_only = true;
 require_once '../includes/auth_check.php';
 require_once '../includes/send_notification.php';
 
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($edit_asset_stmt->execute()) {
         $notification_text = "The asset {$asset_name} ({$asset_tag}) was updated.";
-        send_notification($conn, $notification_text, 'asset_management');
+        send_notification($conn, $notification_text, 'asset_management', null, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $edit_asset_stmt->error));

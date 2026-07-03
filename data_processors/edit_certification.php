@@ -5,7 +5,7 @@ require_once '../includes/auth_check.php';
 require_once '../includes/send_notification.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $is_admin = $_SESSION['role'] === 'Admin';
+    $can_manage = can_manage_org($_SESSION['role']);
     $id = (int) $_POST['id'];
 
     $fetch_cert_sql = "SELECT employee_id FROM certifications WHERE id = ?";
@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    if (!$is_admin && (int) $existing['employee_id'] !== (int) $_SESSION['employee_id']) {
+    if (!$can_manage && (int) $existing['employee_id'] !== (int) $_SESSION['employee_id']) {
         echo json_encode(array('success' => false, 'error' => 'You do not have permission to edit that certification.'));
         exit;
     }
@@ -33,6 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $verification_url = trim($_POST['verification_url']);
     $status = trim($_POST['status']);
 
+    if ($date_earned > date('Y-m-d')) {
+        echo json_encode(array('success' => false, 'error' => 'The date earned cannot be in the future.'));
+        exit;
+    }
+
     if ($expiry_date !== null && $expiry_date < date('Y-m-d')) {
         $status = 'Expired';
     }
@@ -45,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($edit_cert_stmt->execute()) {
         $notification_text = "The certification {$cert_name} was updated.";
-        send_notification($conn, $notification_text, 'certification_management');
+        send_notification($conn, $notification_text, 'certification_management', $existing['employee_id'], false);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $edit_cert_stmt->error));

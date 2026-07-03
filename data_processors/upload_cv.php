@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($upload_cv_stmt->execute()) {
         $notification_text = "A new CV was uploaded" . ($version_label !== '' ? " ({$version_label})" : '') . ".";
-        send_notification($conn, $notification_text, 'cv_management');
+        send_notification($conn, $notification_text, 'cv_management', $employee_id, false);
         echo json_encode(array('success' => true));
     } else {
         unlink($destination);

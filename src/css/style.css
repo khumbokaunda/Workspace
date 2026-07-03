@@ -157,3 +157,111 @@ table.dataTable tbody td {
     margin-top: 0.25rem;
     font-size: 0.85rem;
 }
+
+.theme-toggle-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+/* ---------------------------------------------------------------------
+   Light theme. Everything above is dark-first, this block overrides the
+   same custom classes (and the Bootstrap text utilities we lean on
+   everywhere) when data-bs-theme="light" is set on <html>.
+   --------------------------------------------------------------------- */
+html[data-bs-theme="light"] body {
+    background-color: #f4f5f7;
+    color: #1c1c1c;
+}
+
+html[data-bs-theme="light"] .bg-000 {
+    background-color: #e9eaed !important;
+}
+
+html[data-bs-theme="light"] .bg-111,
+html[data-bs-theme="light"] .bg-111-custom {
+    background: #f4f5f7 !important;
+}
+
+html[data-bs-theme="light"] .bg-222 {
+    background-color: #ffffff !important;
+}
+
+html[data-bs-theme="light"] .bg-333 {
+    background-color: #eef0f3 !important;
+}
+
+html[data-bs-theme="light"] .text-light {
+    color: #1c1c1c !important;
+}
+
+html[data-bs-theme="light"] .text-white-50 {
+    color: rgba(0, 0, 0, 0.55) !important;
+}
+
+html[data-bs-theme="light"] .shadow {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-bs-theme="light"] .brand-title {
+    color: #198754;
+}
+
+html[data-bs-theme="light"] .link {
+    color: #3a3a3a;
+}
+
+html[data-bs-theme="light"] .link:hover {
+    background-color: rgba(25, 135, 84, 0.08);
+    color: #111111;
+}
+
+html[data-bs-theme="light"] .link.active {
+    background-color: rgba(25, 135, 84, 0.12);
+    color: #111111;
+}
+
+html[data-bs-theme="light"] table.dataTable {
+    color: #1c1c1c !important;
+}
+
+html[data-bs-theme="light"] table.dataTable thead th {
+    color: #111111 !important;
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+html[data-bs-theme="light"] table.dataTable tbody td {
+    border-color: #e9ecef !important;
+}
+
+html[data-bs-theme="light"] .dataTables_wrapper .dataTables_filter input,
+html[data-bs-theme="light"] .dataTables_wrapper .dataTables_length select {
+    background-color: #eef0f3;
+    color: #1c1c1c;
+}
+
+html[data-bs-theme="light"] .dataTables_wrapper .dataTables_info,
+html[data-bs-theme="light"] .dataTables_wrapper .dataTables_paginate,
+html[data-bs-theme="light"] .dataTables_wrapper .dataTables_length,
+html[data-bs-theme="light"] .dataTables_wrapper .dataTables_filter label {
+    color: #3a3a3a !important;
+}
+
+html[data-bs-theme="light"] .dataTables_wrapper .paginate_button {
+    color: #3a3a3a !important;
+}
+
+html[data-bs-theme="light"] .modal-content {
+    border: 1px solid #e9ecef;
+}
+
+html[data-bs-theme="light"] .form-label {
+    color: #3a3a3a;
+}
+
+html[data-bs-theme="light"] .dropdown-menu.bg-222 {
+    border: 1px solid #e9ecef;
+}

@@ -8,14 +8,14 @@ if (!isset($_SESSION['logged_in'])) {
 }
 include "../db_connection.php";
 
-$is_admin = $_SESSION['role'] === 'Admin';
+$can_manage = can_manage_org($_SESSION['role']);
 
 // Statuses drift out of sync with expiry_date over time, so every page load
 // resyncs them before anything is displayed.
 $sync_status_sql = "UPDATE certifications SET status = 'Expired' WHERE expiry_date IS NOT NULL AND expiry_date < CURDATE() AND status != 'Expired'";
 $conn->query($sync_status_sql);
 
-if ($is_admin) {
+if ($can_manage) {
     $certifications_sql = "SELECT c.*, e.first_name, e.last_name,
                                    CASE WHEN c.expiry_date IS NOT NULL AND c.expiry_date < CURDATE() THEN 'Expired' ELSE c.status END AS computed_status
                             FROM certifications c
@@ -102,7 +102,7 @@ function cert_status_badge($status) {
                 <div>
                     <h1 class="comfortaa-bold fs-3 mb-1">Certifications</h1>
                     <p class="text-white-50 mb-0">
-                        <?php echo $is_admin ? "Track every certification across the team, especially the ones about to expire." : "Track your own certifications and their expiry dates."; ?>
+                        <?php echo $can_manage ? "Track every certification across the team, especially the ones about to expire." : "Track your own certifications and their expiry dates."; ?>
                     </p>
                 </div>
                 <button class="btn btn-success comfortaa-bold" data-bs-toggle="modal" data-bs-target="#addCertificationModal">
@@ -110,7 +110,7 @@ function cert_status_badge($status) {
                 </button>
             </div>
 
-            <?php if ($is_admin) { ?>
+            <?php if ($can_manage) { ?>
             <ul class="nav nav-tabs border-secondary mb-3" id="certTabs">
                 <li class="nav-item">
                     <button class="nav-link active bg-222 text-light border-secondary" data-bs-toggle="tab" data-bs-target="#certListPane" type="button">All Certifications</button>
@@ -125,10 +125,10 @@ function cert_status_badge($status) {
 
             <div class="bg-222 rounded-3 p-3 p-md-4">
                 <div class="table-responsive">
-                    <table id="certifications_table" class="table table-dark table-hover align-middle w-100">
+                    <table id="certifications_table" class="table table-hover align-middle w-100">
                         <thead>
                             <tr>
-                                <?php if ($is_admin) { ?><th>Employee</th><?php } ?>
+                                <?php if ($can_manage) { ?><th>Employee</th><?php } ?>
                                 <th>Certification</th>
                                 <th>Issuing Body</th>
                                 <th>Code</th>
@@ -141,7 +141,7 @@ function cert_status_badge($status) {
                         <tbody>
                             <?php while ($cert = $certifications_result->fetch_assoc()) { ?>
                             <tr>
-                                <?php if ($is_admin) { ?>
+                                <?php if ($can_manage) { ?>
                                 <td><?php echo htmlspecialchars($cert['first_name'] . ' ' . $cert['last_name']); ?></td>
                                 <?php } ?>
                                 <td>
@@ -168,10 +168,12 @@ function cert_status_badge($status) {
                                             data-credential_id="<?php echo htmlspecialchars($cert['credential_id'] ?? ''); ?>"
                                             data-verification_url="<?php echo htmlspecialchars($cert['verification_url'] ?? ''); ?>"
                                             data-status="<?php echo htmlspecialchars($cert['status']); ?>"
-                                            data-bs-toggle="modal" data-bs-target="#editCertificationModal">
+                                            data-bs-toggle="modal" data-bs-target="#editCertificationModal"
+                                            title="Edit certification" data-tooltip="1">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger delete_cert_btn" data-id="<?php echo $cert['id']; ?>">
+                                    <button class="btn btn-sm btn-danger delete_cert_btn" data-id="<?php echo $cert['id']; ?>"
+                                            title="Delete certification" data-tooltip="1">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </td>
@@ -182,13 +184,13 @@ function cert_status_badge($status) {
                 </div>
             </div>
 
-            <?php if ($is_admin) { ?>
+            <?php if ($can_manage) { ?>
             </div>
             <div class="tab-pane fade" id="skillsMatrixPane">
                 <div class="bg-222 rounded-3 p-3 p-md-4">
                     <p class="text-white-50">A check mark means the employee currently holds an active certification with that code.</p>
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle w-100">
+                        <table class="table table-hover align-middle w-100">
                             <thead>
                                 <tr>
                                     <th>Employee</th>
@@ -232,7 +234,7 @@ function cert_status_badge($status) {
                 </div>
                 <form id="add_certification_form" data-parsley-validate novalidate>
                     <div class="modal-body">
-                        <?php if ($is_admin) { ?>
+                        <?php if ($can_manage) { ?>
                         <div class="mb-3">
                             <label class="form-label">Employee</label>
                             <select id="add_cert_employee_id" name="employee_id" class="form-select bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3" required>
@@ -259,8 +261,10 @@ function cert_status_badge($status) {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date Earned</label>
-                            <input type="date" id="add_date_earned" name="date_earned" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3"
-                                   required data-parsley-required-message="Please choose the date this was earned.">
+                            <input type="date" id="add_date_earned" name="date_earned" max="<?php echo date('Y-m-d'); ?>"
+                                   class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3"
+                                   required data-parsley-required-message="Please choose the date this was earned."
+                                   data-parsley-max="<?php echo date('Y-m-d'); ?>" data-parsley-max-message="The date earned cannot be in the future.">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Expiry Date</label>
@@ -309,7 +313,9 @@ function cert_status_badge($status) {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date Earned</label>
-                            <input type="date" id="edit_date_earned" name="date_earned" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3" required>
+                            <input type="date" id="edit_date_earned" name="date_earned" max="<?php echo date('Y-m-d'); ?>"
+                                   class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3" required
+                                   data-parsley-max="<?php echo date('Y-m-d'); ?>" data-parsley-max-message="The date earned cannot be in the future.">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Expiry Date</label>
@@ -354,6 +360,9 @@ function cert_status_badge($status) {
 
         $('#add_certification_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 employee_id: $('#add_cert_employee_id').length ? DOMPurify.sanitize($('#add_cert_employee_id').val()).trim() : '',
@@ -399,6 +408,9 @@ function cert_status_badge($status) {
 
         $('#edit_certification_form').on('submit', function (event) {
             event.preventDefault();
+            if (!$(this).parsley().validate()) {
+                return;
+            }
 
             const data = {
                 id: $('#edit_cert_id').val(),

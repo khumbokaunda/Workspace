@@ -22,19 +22,29 @@ CREATE TABLE employees (
     phone VARCHAR(30) DEFAULT NULL,
     position VARCHAR(100) DEFAULT NULL,
     department VARCHAR(100) DEFAULT NULL,
+    manager_id INT UNSIGNED DEFAULT NULL,
+    specialization VARCHAR(100) DEFAULT NULL,
     hire_date DATE DEFAULT NULL,
     status ENUM('Active', 'On Leave', 'Terminated') NOT NULL DEFAULT 'Active',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_employees_manager FOREIGN KEY (manager_id) REFERENCES employees(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------------------------
 -- users
 -- --------------------------------------------------------------------------
+-- Roles map onto the real organizational hierarchy rather than a generic
+-- Admin/Staff split. Admin is a pure IT/system role (accounts, employee
+-- records, assets, system settings) with no leave or task approval
+-- authority. Managing Director and Technical Manager get org-wide
+-- visibility on Employee/Attendance/Asset/Certification/Task and are the
+-- only roles that assign tasks or approve leave, routed through each
+-- employee's manager_id. Engineer/Sales/Administration are regular staff.
 CREATE TABLE users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('Admin', 'Staff') NOT NULL DEFAULT 'Staff',
+    role ENUM('Admin', 'Managing Director', 'Technical Manager', 'Engineer', 'Sales', 'Administration') NOT NULL DEFAULT 'Engineer',
     employee_id INT UNSIGNED DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_users_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL
@@ -158,11 +168,19 @@ CREATE TABLE cv_records (
 -- --------------------------------------------------------------------------
 -- notifications
 -- --------------------------------------------------------------------------
+-- recipient_employee_id scopes a notification to one employee (e.g. "your
+-- leave was approved"). management_only marks a notification as visible
+-- only to Admin/Managing Director/Technical Manager (e.g. "a new asset was
+-- added"). A notification with neither set is a general announcement
+-- visible to everyone.
 CREATE TABLE notifications (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     notification TEXT NOT NULL,
     association VARCHAR(100) NOT NULL,
-    time_stamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    recipient_employee_id INT UNSIGNED DEFAULT NULL,
+    management_only TINYINT(1) NOT NULL DEFAULT 0,
+    time_stamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_notifications_employee FOREIGN KEY (recipient_employee_id) REFERENCES employees(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

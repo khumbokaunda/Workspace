@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../db_connection.php';
-$admin_only = true;
+$org_manager_only = true;
 require_once '../includes/auth_check.php';
 require_once '../includes/send_notification.php';
 
@@ -32,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update_asset_stmt->bind_param('i', $asset_id);
         $update_asset_stmt->execute();
 
-        $notification_text = "{$asset['asset_name']} ({$asset['asset_tag']}) was assigned to an employee.";
-        send_notification($conn, $notification_text, 'asset_management');
+        $notification_text = "{$asset['asset_name']} ({$asset['asset_tag']}) was assigned to you.";
+        send_notification($conn, $notification_text, 'asset_management', $employee_id, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $assign_asset_stmt->error));

@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../db_connection.php';
-$admin_only = true;
+$org_manager_only = true;
 require_once '../includes/auth_check.php';
 require_once '../includes/send_notification.php';
 
@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($mark_absence_stmt->execute()) {
         $notification_text = "An absence was recorded for {$work_date}.";
-        send_notification($conn, $notification_text, 'attendance');
+        send_notification($conn, $notification_text, 'attendance', $employee_id, true);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $mark_absence_stmt->error));
