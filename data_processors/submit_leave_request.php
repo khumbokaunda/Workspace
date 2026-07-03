@@ -17,6 +17,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    if ($start_date < date('Y-m-d')) {
+        echo json_encode(array('success' => false, 'error' => 'The start date cannot be in the past.'));
+        exit;
+    }
+
+    // Ranges beyond 90 days are almost always input mistakes, so they are
+    // rejected with a clear message rather than silently accepted.
+    $range_days = (int) ((strtotime($end_date) - strtotime($start_date)) / 86400) + 1;
+    if ($range_days > 90) {
+        echo json_encode(array('success' => false, 'error' => 'Leave requests cannot cover more than 90 days. Please split longer absences into separate requests.'));
+        exit;
+    }
+
     $submit_leave_sql = "INSERT INTO leave_requests (employee_id, leave_type, start_date, end_date, reason, status)
                           VALUES (?, ?, ?, ?, ?, 'Pending')";
     $submit_leave_stmt = $conn->prepare($submit_leave_sql);

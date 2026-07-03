@@ -14,3 +14,8 @@ define('SMTP_USERNAME', 'notifications@example.com');
 define('SMTP_PASSWORD', 'change_me');
 define('SMTP_FROM_EMAIL', 'notifications@example.com');
 define('SMTP_FROM_NAME', 'WorkDesk');
+
+// The certification reminder cron file only runs over the web when this is
+// true. Leave it false and rely on the CLI cron entry documented in
+// data_processors/cert_expiry_reminders.php.
+define('ALLOW_WEB_CRON', false);

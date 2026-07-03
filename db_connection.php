@@ -19,6 +19,12 @@ if ($conn->connect_error) {
 
 $conn->set_charset('utf8mb4');
 
+// Timezone is pinned explicitly so the Late flag and every date comparison
+// behave the same regardless of server locale. Africa/Blantyre is CAT,
+// UTC+2 with no daylight saving, so the MySQL session offset matches.
+date_default_timezone_set('Africa/Blantyre');
+$conn->query("SET time_zone = '+02:00'");
+
 // Check-ins after this time of day are auto-flagged as Late. Kept as a
 // single constant so attendance and dashboard logic never drift apart.
 define('LATE_THRESHOLD_TIME', '08:15:00');

@@ -24,6 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // The URL is rendered as a clickable link, so only web schemes are
+    // accepted. htmlspecialchars alone would not stop a stored
+    // javascript: URL from executing on click.
+    if ($verification_url !== '' && !preg_match('#^https?://#i', $verification_url)) {
+        echo json_encode(array('success' => false, 'error' => 'The verification URL must start with http:// or https://.'));
+        exit;
+    }
+
     $status = ($expiry_date !== null && $expiry_date < date('Y-m-d')) ? 'Expired' : 'Active';
 
     $add_cert_sql = "INSERT INTO certifications

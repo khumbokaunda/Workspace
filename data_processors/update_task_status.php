@@ -19,7 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $fetch_task_sql = "SELECT title, description, assigned_to FROM tasks WHERE id = ?";
+    $fetch_task_sql = "SELECT t.title, t.description, t.assigned_to, u.employee_id AS assigner_employee_id
+                        FROM tasks t
+                        JOIN users u ON u.id = t.assigned_by
+                        WHERE t.id = ?";
     $fetch_task_stmt = $conn->prepare($fetch_task_sql);
     $fetch_task_stmt->bind_param('i', $id);
     $fetch_task_stmt->execute();
@@ -43,7 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($update_status_stmt->execute()) {
         $notification_text = "{$_SESSION['username']} moved the task \"{$task['title']}\" to {$status}.";
-        send_notification($conn, $notification_text, 'task_management', null, true);
+        // Progress goes to the manager who assigned the task, not the whole
+        // management tier. If the assigner's account has no employee record
+        // the management-only broadcast is the fallback.
+        $assigner_employee_id = $task['assigner_employee_id'];
+        send_notification($conn, $notification_text, 'task_management', $assigner_employee_id, $assigner_employee_id === null);
         echo json_encode(array('success' => true));
     } else {
         echo json_encode(array('success' => false, 'error' => $update_status_stmt->error));

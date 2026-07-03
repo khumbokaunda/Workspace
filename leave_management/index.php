@@ -229,8 +229,10 @@ function leave_status_badge($status) {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Start Date</label>
-                            <input type="date" id="start_date" name="start_date" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3"
-                                   required data-parsley-required-message="Please choose a start date.">
+                            <input type="date" id="start_date" name="start_date" min="<?php echo date('Y-m-d'); ?>"
+                                   class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3"
+                                   required data-parsley-required-message="Please choose a start date."
+                                   data-parsley-min="<?php echo date('Y-m-d'); ?>" data-parsley-min-message="The start date cannot be in the past.">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">End Date</label>

@@ -1,15 +1,25 @@
 <?php
-// Designed to be run daily by cron on the command line, for example:
+// Designed to be run daily by cron on the command line. The intended cron
+// entry is:
 //   0 7 * * * php /path/to/wms/data_processors/cert_expiry_reminders.php
 //
 // Finds certifications expiring in exactly 90, 30, or 7 days and emails the
-// holder a reminder. If this is hit over the web instead of the CLI, it is
-// mostly harmless but we still require an Admin session so it cannot be
-// triggered anonymously.
+// holder a reminder, and clears old login_attempts rows.
+//
+// Web execution is disabled by default. It only runs over the web when the
+// deployment's config.php defines ALLOW_WEB_CRON as true, and even then it
+// demands an AJAX POST with a valid CSRF token from a logged-in Admin.
+// Rely on the CLI cron for the real runs.
 require_once __DIR__ . '/../db_connection.php';
 
 if (PHP_SAPI !== 'cli') {
+    if (!defined('ALLOW_WEB_CRON') || ALLOW_WEB_CRON !== true) {
+        http_response_code(403);
+        echo json_encode(array('success' => false, 'error' => 'Forbidden.'));
+        exit;
+    }
     require_once __DIR__ . '/../includes/session_boot.php';
+    require_once __DIR__ . '/../includes/request_guard.php';
     $admin_only = true;
     require_once __DIR__ . '/../includes/auth_check.php';
 }
