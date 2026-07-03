@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../includes/session_boot.php';
 $_SESSION['page_name'] = "user_management";
 $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
 if (!isset($_SESSION['logged_in'])) {
@@ -139,8 +139,8 @@ while ($row = $employees_result->fetch_assoc()) {
                             <label class="form-label">Password</label>
                             <div class="input-group">
                                 <input type="password" id="add_password" name="password" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3"
-                                       required data-parsley-minlength="8" data-parsley-required-message="Please choose a password."
-                                       data-parsley-minlength-message="Password should be at least 8 characters.">
+                                       required data-parsley-minlength="12" data-parsley-required-message="Please choose a password."
+                                       data-parsley-minlength-message="Password should be at least 12 characters.">
                                 <button class="btn btn-333 bg-333 border-0 text-light" type="button" onclick="view_password('add_password', 'add_password_icon')">
                                     <i class="fa-solid fa-eye" id="add_password_icon"></i>
                                 </button>
@@ -246,8 +246,8 @@ while ($row = $employees_result->fetch_assoc()) {
                             <label class="form-label">New Password</label>
                             <div class="input-group">
                                 <input type="password" id="reset_password" name="password" class="form-control bg-333 text-light border-0 focus-ring rounded-2 px-2 py-3"
-                                       required data-parsley-minlength="8" data-parsley-required-message="Please enter a new password."
-                                       data-parsley-minlength-message="Password should be at least 8 characters.">
+                                       required data-parsley-minlength="12" data-parsley-required-message="Please enter a new password."
+                                       data-parsley-minlength-message="Password should be at least 12 characters.">
                                 <button class="btn btn-333 bg-333 border-0 text-light" type="button" onclick="view_password('reset_password', 'reset_password_icon')">
                                     <i class="fa-solid fa-eye" id="reset_password_icon"></i>
                                 </button>

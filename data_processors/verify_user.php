@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../includes/session_boot.php';
 require_once '../db_connection.php';
 require_once '../includes/csrf.php';
 
@@ -117,6 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
         $_SESSION['employee_id'] = $user['employee_id'];
+        $_SESSION['created'] = time();
+        $_SESSION['last_activity'] = time();
 
         echo json_encode(array('success' => true));
     } else {

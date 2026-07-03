@@ -9,7 +9,7 @@
 require_once __DIR__ . '/../db_connection.php';
 
 if (PHP_SAPI !== 'cli') {
-    session_start();
+    require_once __DIR__ . '/../includes/session_boot.php';
     $admin_only = true;
     require_once __DIR__ . '/../includes/auth_check.php';
 }

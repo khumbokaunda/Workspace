@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../includes/session_boot.php';
 $_SESSION['page_name'] = "dashboard";
 $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
 if (!isset($_SESSION['logged_in'])) {

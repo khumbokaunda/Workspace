@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session_boot.php';
 $message = isset($_GET['message']) ? $_GET['message'] : 'Something went wrong. Please try again.';
 ?>
 <!DOCTYPE html>

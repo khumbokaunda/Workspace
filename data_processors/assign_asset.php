@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../includes/session_boot.php';
 require_once '../includes/request_guard.php';
 require_once '../db_connection.php';
 $org_manager_only = true;
