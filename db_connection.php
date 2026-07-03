@@ -23,6 +23,22 @@ $conn->set_charset('utf8mb4');
 // single constant so attendance and dashboard logic never drift apart.
 define('LATE_THRESHOLD_TIME', '08:15:00');
 
+// Login brute-force policy, all in one place. The window is how far back
+// failed attempts count; lockout duration is progressive, doubling per
+// lockout level up to the cap so an attacker cannot permanently lock a
+// real staff member out.
+define('LOGIN_WINDOW_MINUTES', 15);
+define('LOGIN_MAX_FAILS', 5);
+define('LOGIN_MAX_FAILS_ADMIN', 3);
+define('LOGIN_MAX_FAILS_IP', 20);
+define('LOGIN_LOCKOUT_BASE_SECONDS', 60);
+define('LOGIN_LOCKOUT_CAP_SECONDS', 900);
+
+// A fixed throwaway bcrypt hash. When a login is attempted against a
+// username that does not exist, password_verify runs against this instead
+// so the response time does not reveal whether the account is real.
+define('LOGIN_DUMMY_HASH', '$2y$12$.PX9uKk6T2X/2goBQk5aYerfGVAghFjN4diSEculBvCmocUBVMWma');
+
 // The full set of login account roles, in the order they should appear in
 // dropdowns. Kept in one place so every page lists the same roles.
 function all_roles() {

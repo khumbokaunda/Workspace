@@ -16,6 +16,10 @@ if (PHP_SAPI !== 'cli') {
 
 require_once __DIR__ . '/../includes/send_notification.php';
 
+// Housekeeping: login attempt rows older than a day are no longer needed
+// for throttling, so the daily cron run clears them out.
+$conn->query("DELETE FROM login_attempts WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+
 $reminder_windows = array(90, 30, 7);
 $reminders_sent = 0;
 
