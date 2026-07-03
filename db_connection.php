@@ -9,3 +9,7 @@ if ($conn->connect_error) {
 }
 
 $conn->set_charset('utf8mb4');
+
+// Check-ins after this time of day are auto-flagged as Late. Kept as a
+// single constant so attendance and dashboard logic never drift apart.
+define('LATE_THRESHOLD_TIME', '08:15:00');
